@@ -228,10 +228,23 @@ async fn run_codex_tool_session_inner(
                         continue;
                     }
                     EventMsg::TaskComplete(TaskCompleteEvent { last_agent_message }) => {
-                        let text = match last_agent_message {
-                            Some(msg) => msg,
-                            None => "".to_string(),
+                        let conversation_id = running_requests_id_to_codex_uuid
+                            .lock()
+                            .await
+                            .get(&request_id)
+                            .cloned();
+
+                        let text = match (conversation_id, last_agent_message) {
+                            (Some(id), Some(msg)) => {
+                                format!("[CONVERSATION_ID:{id}]\n{msg}")
+                            }
+                            (Some(id), None) => {
+                                format!("[CONVERSATION_ID:{id}]")
+                            }
+                            (None, Some(msg)) => msg,
+                            (None, None) => "".to_string(),
                         };
+
                         let result = CallToolResult {
                             content: vec![ContentBlock::TextContent(TextContent {
                                 r#type: "text".to_string(),
@@ -242,7 +255,6 @@ async fn run_codex_tool_session_inner(
                             structured_content: None,
                         };
                         outgoing.send_response(request_id.clone(), result).await;
-                        // unregister the id so we don't keep it in the map
                         running_requests_id_to_codex_uuid
                             .lock()
                             .await

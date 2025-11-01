@@ -16,7 +16,6 @@ use mcp_types::ElicitRequest;
 use mcp_types::ElicitRequestParamsRequestedSchema;
 use mcp_types::JSONRPC_VERSION;
 use mcp_types::JSONRPCRequest;
-use mcp_types::JSONRPCResponse;
 use mcp_types::ModelContextProtocolRequest;
 use mcp_types::RequestId;
 use pretty_assertions::assert_eq;
@@ -144,20 +143,25 @@ async fn shell_command_approval_triggers_elicitation() -> anyhow::Result<()> {
         mcp_process.read_stream_until_response_message(RequestId::Integer(codex_request_id)),
     )
     .await??;
-    assert_eq!(
-        JSONRPCResponse {
-            jsonrpc: JSONRPC_VERSION.into(),
-            id: RequestId::Integer(codex_request_id),
-            result: json!({
-                "content": [
-                    {
-                        "text": "File created!",
-                        "type": "text"
-                    }
-                ]
-            }),
-        },
-        codex_response
+    assert_eq!(codex_response.id, RequestId::Integer(codex_request_id));
+    assert_eq!(codex_response.jsonrpc, JSONRPC_VERSION);
+    let result = codex_response.result;
+
+    // Verify the response contains conversationId prefix and message
+    let text = result["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.starts_with("[CONVERSATION_ID:"),
+        "Response should start with conversationId annotation"
+    );
+    assert!(
+        text.contains("File created!"),
+        "Response should contain the agent message"
+    );
+
+    // Verify structuredContent is not present
+    assert!(
+        result["structuredContent"].is_null(),
+        "structuredContent should not be present"
     );
 
     assert!(created_file.is_file(), "created file should exist");
@@ -288,20 +292,25 @@ async fn patch_approval_triggers_elicitation() -> anyhow::Result<()> {
         mcp_process.read_stream_until_response_message(RequestId::Integer(codex_request_id)),
     )
     .await??;
-    assert_eq!(
-        JSONRPCResponse {
-            jsonrpc: JSONRPC_VERSION.into(),
-            id: RequestId::Integer(codex_request_id),
-            result: json!({
-                "content": [
-                    {
-                        "text": "Patch has been applied successfully!",
-                        "type": "text"
-                    }
-                ]
-            }),
-        },
-        codex_response
+    assert_eq!(codex_response.id, RequestId::Integer(codex_request_id));
+    assert_eq!(codex_response.jsonrpc, JSONRPC_VERSION);
+    let result = codex_response.result;
+
+    // Verify the response contains conversationId prefix and message
+    let text = result["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.starts_with("[CONVERSATION_ID:"),
+        "Response should start with conversationId annotation"
+    );
+    assert!(
+        text.contains("Patch has been applied successfully!"),
+        "Response should contain the agent message"
+    );
+
+    // Verify structuredContent is not present
+    assert!(
+        result["structuredContent"].is_null(),
+        "structuredContent should not be present"
     );
 
     let file_contents = std::fs::read_to_string(test_file.as_path())?;
@@ -351,20 +360,25 @@ async fn codex_tool_passes_base_instructions() -> anyhow::Result<()> {
         mcp_process.read_stream_until_response_message(RequestId::Integer(codex_request_id)),
     )
     .await??;
-    assert_eq!(
-        JSONRPCResponse {
-            jsonrpc: JSONRPC_VERSION.into(),
-            id: RequestId::Integer(codex_request_id),
-            result: json!({
-                "content": [
-                    {
-                        "text": "Enjoy!",
-                        "type": "text"
-                    }
-                ]
-            }),
-        },
-        codex_response
+    assert_eq!(codex_response.id, RequestId::Integer(codex_request_id));
+    assert_eq!(codex_response.jsonrpc, JSONRPC_VERSION);
+    let result = codex_response.result;
+
+    // Verify the response contains conversationId prefix and message
+    let text = result["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.starts_with("[CONVERSATION_ID:"),
+        "Response should start with conversationId annotation"
+    );
+    assert!(
+        text.contains("Enjoy!"),
+        "Response should contain the agent message"
+    );
+
+    // Verify structuredContent is not present
+    assert!(
+        result["structuredContent"].is_null(),
+        "structuredContent should not be present"
     );
 
     let requests = server.received_requests().await.unwrap();
