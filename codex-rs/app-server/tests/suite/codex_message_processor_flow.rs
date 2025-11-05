@@ -209,6 +209,7 @@ async fn test_send_user_turn_changes_approval_policy_behavior() -> Result<()> {
     let new_conv_id = mcp
         .send_new_conversation_request(NewConversationParams {
             cwd: Some(working_directory.to_string_lossy().into_owned()),
+            approval_policy: Some(AskForApproval::UnlessTrusted),
             ..Default::default()
         })
         .await?;
@@ -507,7 +508,7 @@ fn create_config_toml(codex_home: &Path, server_uri: &str) -> std::io::Result<()
         format!(
             r#"
 model = "mock-model"
-approval_policy = "untrusted"
+approval_policy = "never"
 
 model_provider = "mock_provider"
 
